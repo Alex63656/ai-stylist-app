@@ -1,8 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateHairstyleRoute(req, res) {
   try {
@@ -12,7 +10,7 @@ export async function generateHairstyleRoute(req, res) {
       return res.status(400).json({ error: 'Селфи обязательно' });
     }
 
-    // Проверка кредитов (можно добавить БД позже)
+    // Проверка кредитов
     const userCredits = await getUserCredits(userId);
     if (userCredits <= 0) {
       return res.status(403).json({ 
@@ -45,20 +43,20 @@ export async function generateHairstyleRoute(req, res) {
     }
 
     // Генерация через Gemini
-    const model = genai.models.get('gemini-2.0-flash-exp');
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts }],
-      config: {
+      generationConfig: {
         temperature: 1,
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
-        responseMimeType: 'image/jpeg'
       }
     });
 
     // Извлечение результата
-    const generatedImage = extractImageFromResponse(result);
+    const response = await result.response;
+    const generatedImage = response.text(); // или другой способ получения изображения
     
     if (!generatedImage) {
       return res.status(500).json({ error: 'Не удалось сгенерировать изображение' });
@@ -67,7 +65,7 @@ export async function generateHairstyleRoute(req, res) {
     // Уменьшаем кредиты
     await decrementUserCredits(userId);
 
-    // Сохранение в историю (опционально)
+    // Сохранение в историю
     await saveToHistory(userId, {
       selfieImage: selfieImage.data.substring(0, 100),
       generatedImage,
@@ -101,26 +99,12 @@ function buildPrompt(userPrompt, hasReference) {
   return `${basePrompt}\n\n${userPrompt || 'Создай стильную современную причёску'}`;
 }
 
-function extractImageFromResponse(result) {
-  try {
-    // Извлекаем base64 изображение из ответа
-    if (result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
-      return result.candidates[0].content.parts[0].inlineData.data;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error extracting image:', error);
-    return null;
-  }
-}
-
-// Mock функции для работы с кредитами (замените на реальную БД)
+// Mock функции для работы с кредитами
 const userCreditsMap = new Map();
 
 async function getUserCredits(userId) {
-  // В продакшене - запрос к БД
   if (!userCreditsMap.has(userId)) {
-    userCreditsMap.set(userId, 10); // 10 бесплатных кредитов
+    userCreditsMap.set(userId, 10);
   }
   return userCreditsMap.get(userId);
 }
@@ -130,7 +114,7 @@ async function decrementUserCredits(userId) {
   userCreditsMap.set(userId, Math.max(0, current - 1));
 }
 
-// Mock функция для истории (замените на реальную БД)
+// Mock функция для истории
 const userHistoryMap = new Map();
 
 async function saveToHistory(userId, data) {
@@ -139,7 +123,6 @@ async function saveToHistory(userId, data) {
   }
   const history = userHistoryMap.get(userId);
   history.unshift(data);
-  // Храним только последние 50
   if (history.length > 50) {
     history.pop();
   }
