@@ -514,6 +514,7 @@
         width: 100%;
         max-height: 75vh;
         overflow: hidden;
+        border-radius: 8px;
         user-select: none;
         -webkit-user-select: none;
       }
@@ -558,19 +559,22 @@
       }
       
     </style>
+
   <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "@google/genai": "https://esm.sh/@google/genai",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
   }
 }
 </script>
+  <script type="module" crossorigin src="/assets/index-BhcRK-jv.js"></script>
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
+    <p style="text-align: center; color: #555; font-size: 0.8em; margin-top: 20px;">Для работы приложения требуется <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #777;">API-ключ Google Gemini</a>.</p>
   </body>
 </html>
