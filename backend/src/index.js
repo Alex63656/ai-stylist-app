@@ -30,10 +30,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Раздача статических файлов (фронтенд)
-// Предполагается что index.html и assets в корне проекта
-app.use(express.static(path.join(__dirname, '../../')));
-app.use('/assets', express.static(path.join(__dirname, '../../assets')));
+// Раздача статических файлов из dist/
+app.use(express.static(path.join(__dirname, '../../dist')));
+app.use('/assets', express.static(path.join(__dirname, '../../dist/assets')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -47,7 +46,7 @@ app.get('/api/history', validateTelegramData, historyRoute);
 
 // Главная страница (Mini App)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../index.html'));
+  res.sendFile(path.join(__dirname, '../../dist/index.html'));
 });
 
 // Error handler
