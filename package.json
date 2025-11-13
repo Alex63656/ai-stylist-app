@@ -2,11 +2,11 @@
   "name": "ai-stylist",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "install": "npm install && cd backend && npm install",
-    "build": "npm run build:frontend && cd backend && npm install",
-    "build:frontend": "vite build",
-    "start": "cd backend && npm start"
+    "build": "vite build",
+    "start": "cd backend && npm start",
+    "install": "cd backend && npm install"
   },
   "engines": {
     "node": "18.x"
