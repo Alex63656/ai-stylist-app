@@ -30,9 +30,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Раздача статических файлов из dist/
-app.use(express.static(path.join(__dirname, '../../dist')));
-app.use('/assets', express.static(path.join(__dirname, '../../dist/assets')));
+// Раздача статических файлов из корня репозитория
+app.use(express.static(path.join(__dirname, '../..')));
+app.use('/assets', express.static(path.join(__dirname, '../../assets')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -46,7 +46,7 @@ app.get('/api/history', validateTelegramData, historyRoute);
 
 // Главная страница (Mini App)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  res.sendFile(path.join(__dirname, '../../index.html'));
 });
 
 // Error handler
