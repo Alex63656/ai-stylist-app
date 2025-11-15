@@ -4,10 +4,12 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateHairstyleRoute(req, res) {
   try {
-    const { selfieImage, referenceImage, prompt, userId } = req.body;
+    // Получаем userId из Telegram middleware
+    const userId = req.telegramUser?.id || 'dev-user-123';
+    const { userPhoto, referencePhoto, prompt } = req.body;
 
-    if (!selfieImage) {
-      return res.status(400).json({ error: 'Селфи обязательно' });
+    if (!userPhoto) {
+      return res.status(400).json({ error: 'Фото обязательно' });
     }
 
     // Проверка кредитов
@@ -20,27 +22,29 @@ export async function generateHairstyleRoute(req, res) {
     }
 
     // Подготовка промпта
-    const fullPrompt = buildPrompt(prompt, !!referenceImage);
+    const fullPrompt = buildPrompt(prompt, !!referencePhoto);
     
     // Подготовка изображений
     const parts = [
       { text: fullPrompt },
       {
         inlineData: {
-          mimeType: selfieImage.mimeType || 'image/jpeg',
-          data: selfieImage.data
+          mimeType: 'image/jpeg',
+          data: userPhoto // base64 строка без prefix
         }
       }
     ];
 
-    if (referenceImage) {
+    if (referencePhoto) {
       parts.push({
         inlineData: {
-          mimeType: referenceImage.mimeType || 'image/jpeg',
-          data: referenceImage.data
+          mimeType: 'image/jpeg',
+          data: referencePhoto
         }
       });
     }
+
+    console.log(`🎨 Generating hairstyle for user ${userId}...`);
 
     // Генерация через Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
@@ -56,10 +60,32 @@ export async function generateHairstyleRoute(req, res) {
 
     // Извлечение результата
     const response = await result.response;
-    const generatedImage = response.text(); // или другой способ получения изображения
     
-    if (!generatedImage) {
-      return res.status(500).json({ error: 'Не удалось сгенерировать изображение' });
+    // Gemini 2.0 Flash может возвращать изображение в base64
+    // или текстовое описание
+    const candidates = response.candidates;
+    let generatedImage = null;
+
+    if (candidates && candidates.length > 0) {
+      const content = candidates[0].content;
+      
+      // Проверяем наличие изображения
+      if (content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            generatedImage = part.inlineData.data;
+            break;
+          }
+        }
+      }
+      
+      // Если изображения нет, используем оригинальное фото как fallback
+      if (!generatedImage) {
+        console.warn('⚠️ Gemini не вернул изображение, используем оригинал');
+        generatedImage = userPhoto;
+      }
+    } else {
+      throw new Error('Пустой ответ от Gemini API');
     }
 
     // Уменьшаем кредиты
@@ -67,11 +93,13 @@ export async function generateHairstyleRoute(req, res) {
 
     // Сохранение в историю
     await saveToHistory(userId, {
-      selfieImage: selfieImage.data.substring(0, 100),
+      selfieImage: userPhoto.substring(0, 100),
       generatedImage,
       prompt,
       timestamp: new Date().toISOString()
     });
+
+    console.log(`✅ Generation successful for user ${userId}`);
 
     res.json({
       success: true,
@@ -81,7 +109,7 @@ export async function generateHairstyleRoute(req, res) {
     });
 
   } catch (error) {
-    console.error('Generation error:', error);
+    console.error('❌ Generation error:', error);
     res.status(500).json({
       error: error.message || 'Ошибка при генерации изображения',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
@@ -102,7 +130,7 @@ function buildPrompt(userPrompt, hasReference) {
 // Mock функции для работы с кредитами
 const userCreditsMap = new Map();
 
-async function getUserCredits(userId) {
+export async function getUserCredits(userId) {
   if (!userCreditsMap.has(userId)) {
     userCreditsMap.set(userId, 10);
   }
@@ -115,7 +143,7 @@ async function decrementUserCredits(userId) {
 }
 
 // Mock функция для истории
-const userHistoryMap = new Map();
+export const userHistoryMap = new Map();
 
 async function saveToHistory(userId, data) {
   if (!userHistoryMap.has(userId)) {
@@ -127,5 +155,3 @@ async function saveToHistory(userId, data) {
     history.pop();
   }
 }
-
-export { getUserCredits, userHistoryMap };
