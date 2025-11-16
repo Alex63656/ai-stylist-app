@@ -17,7 +17,7 @@ export async function generateHairstyleRoute(req, res) {
       return res.status(403).json({ error: 'Недостаточно кредитов', creditsLeft: 0 });
     }
     // Подготовка промпта
-    const fullPrompt = buildPrompt(prompt, !!referencePhoto);
+        const fullPrompt = prompt; // Simple prompt without building
     // Подготовка изображений
     const parts = [
       { text: fullPrompt },
