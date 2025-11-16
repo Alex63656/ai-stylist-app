@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"node src/index.js\" \"sleep 2 && node bot.js\"",
+    "start": "node start-both.js",
     "dev": "nodemon src/index.js",
     "bot": "node bot.js"
   },
