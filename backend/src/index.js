@@ -9,6 +9,7 @@ import { generateHairstyleRoute } from './routes/generate.js';
 import { validateTelegramData } from './middleware/telegram.js';
 import { creditsRoute } from './routes/credits.js';
 import { historyRoute } from './routes/history.js';
+import { bot } from '../bot.js';
 
 dotenv.config();
 
@@ -47,7 +48,14 @@ app.get('/api/history', validateTelegramData, historyRoute);
 // Telegram Webhook для Mini App
 app.post('/webhook/telegram', (req, res) => {
   // Telegram отправляет обновления на этот endpoint
-  res.json({ ok: true });
+    // Process Telegram webhook updates
+  try {
+    bot.processUpdate(req.body);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error processing webhook update:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
 });
 
 
