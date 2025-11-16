@@ -44,6 +44,13 @@ app.post('/api/generate', validateTelegramData, generateHairstyleRoute);
 app.get('/api/credits', validateTelegramData, creditsRoute);
 app.get('/api/history', validateTelegramData, historyRoute);
 
+// Telegram Webhook для Mini App
+app.post('/webhook/telegram', (req, res) => {
+  // Telegram отправляет обновления на этот endpoint
+  res.json({ ok: true });
+});
+
+
 // Главная страница (Mini App)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../index.html'));
