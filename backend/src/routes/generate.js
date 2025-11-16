@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateHairstyleRoute(req, res) {
@@ -15,7 +14,7 @@ export async function generateHairstyleRoute(req, res) {
     // Проверка кредитов
     const userCredits = await getUserCredits(userId);
     if (userCredits <= 0) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Недостаточно кредитов',
         creditsLeft: 0
       });
@@ -23,14 +22,14 @@ export async function generateHairstyleRoute(req, res) {
 
     // Подготовка промпта
     const fullPrompt = buildPrompt(prompt, !!referencePhoto);
-    
+
     // Подготовка изображений
     const parts = [
       { text: fullPrompt },
       {
         inlineData: {
           mimeType: 'image/jpeg',
-          data: userPhoto // base64 строка без prefix
+          data: userPhoto
         }
       }
     ];
@@ -54,22 +53,17 @@ export async function generateHairstyleRoute(req, res) {
         temperature: 1,
         topP: 0.95,
         topK: 40,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 8192
       }
     });
 
-    // Извлечение результата
     const response = await result.response;
-    
-    // Gemini 2.0 Flash может возвращать изображение в base64
-    // или текстовое описание
     const candidates = response.candidates;
     let generatedImage = null;
 
     if (candidates && candidates.length > 0) {
       const content = candidates[0].content;
-      
-      // Проверяем наличие изображения
+
       if (content.parts) {
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
@@ -78,8 +72,7 @@ export async function generateHairstyleRoute(req, res) {
           }
         }
       }
-      
-      // Если изображения нет, используем оригинальное фото как fallback
+
       if (!generatedImage) {
         console.warn('⚠️ Gemini не вернул изображение, используем оригинал');
         generatedImage = userPhoto;
@@ -107,7 +100,6 @@ export async function generateHairstyleRoute(req, res) {
       creditsLeft: userCredits - 1,
       timestamp: new Date().toISOString()
     });
-
   } catch (error) {
     console.error('❌ Generation error:', error);
     res.status(500).json({
@@ -118,13 +110,44 @@ export async function generateHairstyleRoute(req, res) {
 }
 
 function buildPrompt(userPrompt, hasReference) {
-  const basePrompt = `Ты профессиональный виртуальный стилист. Твоя задача - наложить причёску на фотографию человека, сохраняя естественность.`;
-  
+  /* ОСНОВНОЙ Промпт (английский) - более строгий и чёткий */
+  const basePrompt = `You are an expert AI virtual hairstylist.
+Your primary task is to **modify an original photo** of a person to apply a new hairstyle.
+
+**INPUTS:**
+1.  **Original Photo (Source):** The photo of the person who needs a hairstyle change.
+2.  **Reference Photo (Reference):** The image showing the **target hairstyle** (its shape, color, texture, and length).
+
+**YOUR TASK:**
+1.  Analyze the **hairstyle** (shape, color, texture) from the **Reference Photo**.
+2.  Analyze the **person** (face shape, features, skin tone, lighting) from the **Original Photo**.
+3.  Generate a new, photorealistic image where the person from the **Original Photo** now has the hairstyle from the **Reference Photo**.
+
+**CRITICAL REQUIREMENTS:**
+-   **PRESERVE IDENTITY:** The person's identity, facial structure, expression, and features (eyes, nose, mouth) must remain **PERFECTLY UNCHANGED**.
+-   **CHANGE ONLY THE HAIR:** The only thing you must fundamentally change is the hairstyle.
+-   **SEAMLESS INTEGRATION:** The new hairstyle must be naturally integrated onto the person's head, matching the lighting, shadows, and skin tone of the **Original Photo**.
+-   **DO NOT COPY THE FACE:** You must not swap the source face with the reference face. The reference is **ONLY FOR THE HAIRSTYLE**.
+-   **FORBIDDEN: DO NOT RETURN THE ORIGINAL.** It is **STRICTLY FORBIDDEN** to return the original image without changes. The output **MUST** show a new hairstyle.
+-   **Format:** Single, high-quality, photorealistic portrait (head and shoulders).
+-   **Resolution:** 512x512 or higher.`;
+
+  // Сценарий 1: Есть Референс
   if (hasReference) {
-    return `${basePrompt}\n\nИспользуй стиль и причёску со второго фото как референс. ${userPrompt || ''}`;
+    let finalPrompt = `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- Your primary goal is to apply the hairstyle from the **Reference Photo**.`;
+    if (userPrompt) {
+      finalPrompt += `\n- Additional user requests: ${userPrompt}`;
+    }
+    return `${finalPrompt}\n\nGenerate the image now.`;
   }
-  
-  return `${basePrompt}\n\n${userPrompt || 'Создай стильную современную причёску'}`;
+
+  // Сценарий 2: Нет Референса, но есть текстовое описание
+  if (userPrompt) {
+    return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference photo was provided. Generate the hairstyle based on this description: ${userPrompt}\n\nGenerate the image now.`;
+  }
+
+  // Сценарий 3: Запасной вариант
+  return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference or description was provided. Generate a modern, stylish, professional haircut.\n\nGenerate the image now.`;
 }
 
 // Mock функции для работы с кредитами
