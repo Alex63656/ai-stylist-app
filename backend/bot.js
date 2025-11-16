@@ -1,6 +1,13 @@
 import TelegramBot from 'node-telegram-bot-api';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+console.log('Token loaded:', token ? 'YES (length: ' + token.length + ')' : 'NO - UNDEFINED!');
+
+if (!token || token.trim() === '') {
+  console.error('CRITICAL: TELEGRAM_BOT_TOKEN is empty or not set!');
+  console.log('process.env.TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
+  process.exit(1);
+}
 const BOT_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'web-production-38699.up.railway.app';
 const WEBHOOK_URL = `https://${BOT_DOMAIN}/webhook/telegram`;
 
