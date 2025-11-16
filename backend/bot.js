@@ -3,71 +3,65 @@ import TelegramBot from 'node-telegram-bot-api';
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const BOT_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN || 'web-production-38699.up.railway.app';
 const WEBHOOK_URL = `https://${BOT_DOMAIN}/webhook/telegram`;
-const PORT = process.env.PORT || 8080;
 
-const bot = new TelegramBot(token, { 
-  webHook: { 
-    host: '0.0.0.0', 
-    port: PORT, 
-    path: '/webhook/telegram' 
-  } 
-});
+// Create bot WITHOUT webhook configuration - Express handles the webhook
+const bot = new TelegramBot(token);
 
-// Функция для регистрации webhook с повторными попытками
+// Function to register webhook with retry logic
 async function registerWebhook(attempt = 1, maxAttempts = 5) {
   try {
-    console.log(`📡 Registering webhook (attempt ${attempt}/${maxAttempts})...`);
+    console.log(`\uD83D\uDCE1 Registering webhook (attempt ${attempt}/${maxAttempts})...`);
     console.log(`   URL: ${WEBHOOK_URL}`);
     
-    // Сначала удаляем старый webhook (если есть)
+    // First delete old webhook (if any)
     try {
       await bot.deleteWebHook();
-      console.log('✅ Old webhook deleted');
+      console.log('\u2705 Old webhook deleted');
     } catch (e) {
-      // Игнорируем ошибку если webhook не был установлен
+      // Ignore error if webhook wasn't set
     }
     
-    // Регистрируем новый webhook
+    // Register new webhook
     await bot.setWebHook(WEBHOOK_URL, {
       max_connections: 40,
       allowed_updates: ['message', 'callback_query']
     });
     
-    console.log(`✅ Webhook registered successfully: ${WEBHOOK_URL}`);
+    console.log(`\u2705 Webhook registered successfully: ${WEBHOOK_URL}`);
     return true;
   } catch (error) {
-    console.error(`❌ Webhook registration failed (attempt ${attempt}):`, error.message);
+    console.error(`\u274C Webhook registration failed (attempt ${attempt}):`, error.message);
     
     if (attempt < maxAttempts) {
       const delayMs = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
-      console.log(`⏳ Retrying in ${delayMs}ms...`);
+      console.log(`\u23F3 Retrying in ${delayMs}ms...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
       return registerWebhook(attempt + 1, maxAttempts);
     } else {
-      console.error('❌ Failed to register webhook after all attempts');
+      console.error('\u274C Failed to register webhook after all attempts');
       return false;
     }
   }
 }
 
-// Обработка /start команды
+// Handle /start command
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from.first_name || 'друг';
   
-  console.log(`📨 /start from ${firstName} (${chatId})`);
+  console.log(`\uD83D\uDCE8 /start from ${firstName} (${chatId})`);
   
   bot.sendMessage(
     chatId,
-    `👋 Привет, ${firstName}!\n\n` +
-    `🎨 Добро пожаловать в AI Stylist — виртуальный стилист по прическам!\n\n` +
+    `\uD83D\uDC4B Привет, ${firstName}!\n\n` +
+    `\uD83C\uDFA8 Добро пожаловать в AI Stylist — виртуальный стилист по прическам!\n\n` +
     `Нажми на кнопку ниже, чтобы открыть приложение:`,
     {
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: '🚀 Перейти в приложение',
+              text: '\uD83D\uDE80 Перейти в приложение',
               web_app: { url: `https://${BOT_DOMAIN}` }
             }
           ]
@@ -77,49 +71,47 @@ bot.onText(/\/start/, (msg) => {
   ).catch(err => console.error('Error sending message:', err));
 });
 
-// Обработка входящих сообщений
+// Handle incoming messages
 bot.on('message', (msg) => {
-  console.log(`💬 Message from ${msg.from.first_name}: ${msg.text}`);
+  console.log(`\uD83D\uDCEC Message from ${msg.from.first_name}: ${msg.text}`);
 });
 
-// Обработка ошибок
+// Handle errors
 bot.on('polling_error', (error) => {
-  console.error('🚨 Polling error:', error);
+  console.error('\uD83D\uDEA8 Polling error:', error);
 });
 
 bot.on('webhook_error', (error) => {
-  console.error('🚨 Webhook error:', error);
+  console.error('\uD83D\uDEA8 Webhook error:', error);
 });
 
-// Инициализация
+// Initialization
 async function start() {
   try {
-    console.log('🤖 TG Bot for Mini App starting...');
-    console.log(`   Token: ${token ? '✅ Loaded' : '❌ Missing'}`);
+    console.log('\uD83E\uDD16 TG Bot for Mini App starting...');
+    console.log(`   Token: ${token ? '\u2705 Loaded' : '\u274C Missing'}`);
     console.log(`   Domain: ${BOT_DOMAIN}`);
-    console.log(`   Port: ${PORT}`);
     
-    // Регистрируем webhook
+    // Register webhook
     const success = await registerWebhook();
     
     if (success) {
-      console.log('\n✅ Bot is ready and waiting for updates via webhook!');
+      console.log('\n\u2705 Bot is ready and waiting for updates via webhook!');
     } else {
-      console.error('\n⚠️ Bot started but webhook registration failed');
+      console.error('\n\u26A0\uFE0F Bot started but webhook registration failed');
     }
   } catch (error) {
-    console.error('❌ Fatal error:', error);
+    console.error('\u274C Fatal error:', error);
     process.exit(1);
   }
 }
 
-// Запуск
+// Start bot
 start();
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down gracefully...');
-  bot.stopPolling();
+  console.log('\n\uD83D\uDED1 Shutting down gracefully...');
   process.exit(0);
 });
 
