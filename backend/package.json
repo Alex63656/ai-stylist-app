@@ -5,10 +5,9 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "concurrently \"node src/index.js\" \"node bot.js\"",
     "dev": "nodemon src/index.js",
-    "bot": "node bot.js",
-    "all": "concurrently \"npm run start\" \"npm run bot\""
+    "bot": "node bot.js"
   },
   "keywords": ["telegram", "ai", "stylist", "gemini"],
   "author": "Alex",
