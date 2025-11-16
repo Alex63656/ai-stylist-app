@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateHairstyleRoute(req, res) {
   try {
-    // Получаем userId из Telegram middleware
-    const userId = req.telegramUser?.id || 'dev-user-123';
+    const userId = req.telegramUserId || 'dev-user-123';
     const { userPhoto, referencePhoto, prompt } = req.body;
 
     if (!userPhoto) {
@@ -43,111 +43,73 @@ export async function generateHairstyleRoute(req, res) {
       });
     }
 
-    console.log(`🎨 Generating hairstyle for user ${userId}...`);
-
-    // Генерация через Gemini
+    // Вызов Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image-preview' });
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts }],
-      generationConfig: {
-        temperature: 1,
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 8192
-      }
-    });
+    const response = await model.generateContent(parts);
+    const result = await response.response;
 
-    const response = await result.response;
-    const candidates = response.candidates;
-    let generatedImage = null;
+    // Получение изображения
+    const generatedImage = result.candidates[0].content.parts[0].text ||
+                          result.candidates[0].content.parts[0].inlineData?.data ||
+                          userPhoto;
 
-    if (candidates && candidates.length > 0) {
-      const content = candidates[0].content;
-
-      if (content.parts) {
-        for (const part of content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            generatedImage = part.inlineData.data;
-            break;
-          }
-        }
-      }
-
-      if (!generatedImage) {
-        console.warn('⚠️ Gemini не вернул изображение, используем оригинал');
-        generatedImage = userPhoto;
-      }
-    } else {
-      throw new Error('Пустой ответ от Gemini API');
-    }
-
-    // Уменьшаем кредиты
+    // Уменьшение кредитов
     await decrementUserCredits(userId);
 
     // Сохранение в историю
     await saveToHistory(userId, {
-      selfieImage: userPhoto.substring(0, 100),
-      generatedImage,
+      userPhoto,
+      referencePhoto,
       prompt,
+      generatedImage,
       timestamp: new Date().toISOString()
     });
-
-    console.log(`✅ Generation successful for user ${userId}`);
 
     res.json({
       success: true,
       image: generatedImage,
-      creditsLeft: userCredits - 1,
-      timestamp: new Date().toISOString()
+      creditsLeft: userCredits - 1
     });
   } catch (error) {
-    console.error('❌ Generation error:', error);
-    res.status(500).json({
-      error: error.message || 'Ошибка при генерации изображения',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('Error generating hairstyle:', error);
+    res.status(500).json({ error: 'Ошибка генерации' });
   }
 }
 
 function buildPrompt(userPrompt, hasReference) {
-  /* ОСНОВНОЙ Промпт (английский) - более строгий и чёткий */
   const basePrompt = `You are an expert AI virtual hairstylist.
-Your primary task is to **modify an original photo** of a person to apply a new hairstyle.
+
+**PRIMARY GOAL (HIGHEST PRIORITY):**
+Your **NUMBER ONE GOAL** is to apply the hairstyle from the **Reference Photo** to the person in the **Original Photo**. The hair MUST be visibly different from the original.
 
 **INPUTS:**
-1.  **Original Photo (Source):** The photo of the person who needs a hairstyle change.
-2.  **Reference Photo (Reference):** The image showing the **target hairstyle** (its shape, color, texture, and length).
-
-**YOUR TASK:**
-1.  Analyze the **hairstyle** (shape, color, texture) from the **Reference Photo**.
-2.  Analyze the **person** (face shape, features, skin tone, lighting) from the **Original Photo**.
-3.  Generate a new, photorealistic image where the person from the **Original Photo** now has the hairstyle from the **Reference Photo**.
+1.  **Original Photo (Source):** Contains the person's face and identity.
+2.  **Reference Photo (Reference):** Contains the **target hairstyle** (shape, color, texture).
 
 **CRITICAL REQUIREMENTS:**
--   **PRESERVE IDENTITY:** The person's identity, facial structure, expression, and features (eyes, nose, mouth) must remain **PERFECTLY UNCHANGED**.
--   **CHANGE ONLY THE HAIR:** The only thing you must fundamentally change is the hairstyle.
--   **SEAMLESS INTEGRATION:** The new hairstyle must be naturally integrated onto the person's head, matching the lighting, shadows, and skin tone of the **Original Photo**.
--   **DO NOT COPY THE FACE:** You must not swap the source face with the reference face. The reference is **ONLY FOR THE HAIRSTYLE**.
--   **FORBIDDEN: DO NOT RETURN THE ORIGINAL.** It is **STRICTLY FORBIDDEN** to return the original image without changes. The output **MUST** show a new hairstyle.
--   **Format:** Single, high-quality, photorealistic portrait (head and shoulders).
--   **Resolution:** 512x512 or higher.`;
+1.  **CHANGE THE HAIR:** The hairstyle from the Original Photo **MUST** be completely replaced by the hairstyle from the Reference Photo. This is your main task.
+2.  **PRESERVE LIKENESS (NOT PIXELS):** The person's core facial features **(eyes, nose, mouth, and chin/jaw structure)** must be preserved. The person must remain recognizable.
+3.  **PERMISSION TO OCCLUDE:** You **HAVE PERMISSION** to cover parts of the source image (like the forehead, ears, or neck) if the new hairstyle from the reference photo naturally covers them. This is NOT a violation of Requirement #2.
+4.  **DO NOT MERGE FACES:** Use the Reference Photo *only* for hairstyle information. Do not copy the reference's facial features.
+5.  **FINAL CHECK (MANDATORY):** Before outputting, ask yourself: "Is the hair different from the Original Photo?" If the answer is "No," you have failed. **YOU MUST NOT output the original image.**
 
-  // Сценарий 1: Есть Референс
+**OUTPUT FORMAT:**
+-   Single, high-quality, photorealistic portrait (head and shoulders).
+-   Resolution: 512x512 or higher.`;
+
   if (hasReference) {
-    let finalPrompt = `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- Your primary goal is to apply the hairstyle from the **Reference Photo**.`;
+    let finalPrompt = `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- Primary Goal: Apply the hairstyle from the **Reference Photo**.`;
     if (userPrompt) {
       finalPrompt += `\n- Additional user requests: ${userPrompt}`;
     }
     return `${finalPrompt}\n\nGenerate the image now.`;
   }
 
-  // Сценарий 2: Нет Референса, но есть текстовое описание
   if (userPrompt) {
-    return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference photo was provided. Generate the hairstyle based on this description: ${userPrompt}\n\nGenerate the image now.`;
+    return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference photo provided. Generate the hairstyle based on this description: ${userPrompt}\n\nGenerate the image now.`;
   }
 
-  // Сценарий 3: Запасной вариант
-  return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference or description was provided. Generate a modern, stylish, professional haircut.\n\nGenerate the image now.`;
+  return `${basePrompt}\n\n**STYLE INSTRUCTIONS:**\n- No reference or description provided. Generate a modern, stylish, professional haircut.\n\nGenerate the image now.`;
 }
 
 // Mock функции для работы с кредитами
