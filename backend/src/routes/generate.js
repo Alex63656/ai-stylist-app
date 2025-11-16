@@ -47,7 +47,7 @@ export async function generateHairstyleRoute(req, res) {
     console.log(`🎨 Generating hairstyle for user ${userId}...`);
 
     // Генерация через Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image-preview' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts }],
       generationConfig: {
