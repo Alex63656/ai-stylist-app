@@ -97,6 +97,30 @@ async function start() {
   try {
     console.log('\uD83E\uDD16 TG Bot for Mini App starting...');
     console.log(`   Token: ${token ? '\u2705 Loaded' : '\u274C Missing'}`);
+
+    // Command handlers
+    bot.onText(/\/start/, async (msg) => {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id;
+
+        const welcomeMessage = 'Привет! 👋\n\nЯ AI Stylist - твой виртуальный стилист!\n\nОткройте Mini App чтобы начать генерировать новые прически 💇‍♀️';
+
+        try {
+              await bot.sendMessage(chatId, welcomeMessage, {
+                      reply_markup: {
+                                inline_keyboard: [[
+                                            {
+                                                          text: '🚀 Перейти в приложение',
+                                                          web_app: { url: `https://${BOT_DOMAIN}` }
+                                                                      }
+                                          ]]
+                                        }
+                            });
+              console.log(`✅ /start command processed for user ${userId}`);
+            } catch (error) {
+              console.error('Error sending start message:', error);
+            }
+      });
     console.log(`   Domain: ${BOT_DOMAIN}`);
     
     // Register webhook
