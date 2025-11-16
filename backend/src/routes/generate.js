@@ -40,3 +40,10 @@ export async function generateHairstyleRoute(req, res) {
     return res.status(500).json({ error: 'Системная ошибка генерации', details: err && err.message });
   }
 }
+
+// Export getUserCredits function for credits.js
+export async function getUserCredits(userId) {
+    // TODO: Replace with real database logic
+    // For now, return 5 credits for all users to allow testing
+    return 5;
+  }
