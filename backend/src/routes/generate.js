@@ -3,6 +3,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Store for user generation history
 export const userHistoryMap = new Map();
+export async function getUserCredits(userId) { return 5; }
 
 export async function generateHairstyleRoute(req, res) {
   try {
