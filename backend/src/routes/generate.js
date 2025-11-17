@@ -24,13 +24,15 @@ export async function generateHairstyleRoute(req, res) {
   const textPrompt = `Придумай интересное описание новой прически на основе этого запроса: "${fullPrompt}"
   Ответь кратким, но креативным описанием (2-3 предложения) на русском языке.`;
 
-  // Генерация текстового описания через Gemini
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
-  const result = await model.generateContent(textPrompt);
-
-  // Получение текста из ответа
-  const generatedText = result.response.text();
-  
+ // Использование vision модели для обработки и описания
+ const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
+ 
+ // Подготовка контента с изображением
+ const imagePart = { inlineData: { data: userPhoto.split(',')[1], mimeType: 'image/jpeg' } };
+ const textPart = { text: `Опиши эту прическу и предложи улучшения на основе запроса: "${fullPrompt}"` };
+ 
+ const result = await model.generateContent([imagePart, textPart]);
+ const generatedText = result.response.text();  
   // Возвращаем сгенерированное описание вместо изображения
   return res.json({
     success: true,
