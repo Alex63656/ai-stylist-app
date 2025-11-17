@@ -27,8 +27,7 @@ export async function generateHairstyleRoute(req, res) {
     // -- КРИТИЧЕСКАЯ ОБРАБОТКА ОШИБКИ Gemini --
     let result;
     try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-0514' });
-            result = await model.generateContent(parts);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });            result = await model.generateContent(parts);
     } catch (e) {
       console.error('Gemini API ERROR:', e);
       return res.status(500).json({ error: 'Ошибка генерации: Gemini API не отвечает', details: e && e.message });
