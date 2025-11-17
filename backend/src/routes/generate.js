@@ -19,44 +19,24 @@ export async function generateHairstyleRoute(req, res) {
     // Подготовка промпта
         const fullPrompt = prompt; // Simple prompt without building
     // Подготовка изображений
-    const parts = [
-      { text: fullPrompt },
-      { inlineData: { mimeType: 'image/jpeg', data: userPhoto } }
-    ];
+      // Подготовка текстового промпта для генерации
+  const textPrompt = `Придумай интересное описание новой прически на основе этого запроса: "${fullPrompt}"
+  Ответь кратким, но креативным описанием (2-3 предложения) на русском языке.`;
 
-    // -- КРИТИЧЕСКАЯ ОБРАБОТКА ОШИБКИ Gemini --
-    let result;
-    try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
-          result = await model.generateContent(parts);} catch (e) {     console.error('Gemini API ERROR:', e);
+  // Генерация текстового описания через Gemini
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  result = await model.generateContent(textPrompt);
 
-    }
-    if (!result || !result.parts) {
-      console.error('ERROR: Gemini API response is undefined or missing parts property!', result);
-      return res.status(500).json({ error: 'Ошибка генерации: пустой или некорректный ответ Gemini', details: result });
-    }
-    // Все ОК — вернуть результат
-    return res.json({ images: result.parts });
-  } catch (err) {
-    console.error('FATAL ERROR in generateHairstyleRoute:', err);
-    return res.status(500).json({ error: 'Системная ошибка генерации', details: err && err.message });
+  // Получение текста из ответа
+  const generatedText = result.response.text();
+  
+  // Возвращаем сгенерированное описание вместо изображения
+  return res.json({
+    success: true,
+    description: generatedText,
+    message: 'Описание прически успешно сгенерировано'
+  });
 
-        // Store in history
-        if (!userHistoryMap.has(userId)) {
-                userHistoryMap.set(userId, []);
-              }
-        const userHistory = userHistoryMap.get(userId);
-        userHistory.push({
-                generatedImage: result.parts[0].inlineData.data,
-                prompt: fullPrompt,
-                timestamp: Date.now()
-              });
-  }
-}
-
-// Export getUserCredits function for credits.js
-export async function getUserCredits(userId) {
-    // TODO: Replace with real database logic
-    // For now, return 5 credits for all users to allow testing
-    return 5;
-  }
+} catch (e) {
+  console.error('Gemini API ERROR:', e);
+  return res.status(500).json({ error: 'Ошибка генерации', details: e.message });
