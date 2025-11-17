@@ -25,7 +25,7 @@ export async function generateHairstyleRoute(req, res) {
 
   // Генерация текстового описания через Gemini
   const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-  result = await model.generateContent(textPrompt);
+  const result = await model.generateContent(textPrompt);
 
   // Получение текста из ответа
   const generatedText = result.response.text();
@@ -40,3 +40,6 @@ export async function generateHairstyleRoute(req, res) {
 } catch (e) {
   console.error('Gemini API ERROR:', e);
   return res.status(500).json({ error: 'Ошибка генерации', details: e.message });
+
+  }
+  }
