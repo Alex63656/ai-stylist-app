@@ -25,7 +25,7 @@ export async function generateHairstyleRoute(req, res) {
   Ответь кратким, но креативным описанием (2-3 предложения) на русском языке.`;
 
   // Генерация текстового описания через Gemini
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
   const result = await model.generateContent(textPrompt);
 
   // Получение текста из ответа
