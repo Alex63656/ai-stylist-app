@@ -28,9 +28,14 @@ export async function generateHairstyleRoute(req, res) {
  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
  
  // Подготовка контента с изображением
- const imagePart = { inlineData: { data: userPhoto.replace(/^data:image\/[a-z]+;base64,/, ''), mimeType: 'image/jpeg' } };
- const textPart = { text: `Опиши эту прическу и предложи улучшения на основе запроса: "${fullPrompt}"` };
- 
+// Process base64 image - handle both data URI and raw base64
+  let base64Data = userPhoto;
+  if (typeof userPhoto === 'string' && userPhoto.includes('base64,')) {
+    base64Data = userPhoto.split('base64,')[1];
+  }
+  console.log('Image processing - length:', base64Data?.length, 'type:', typeof base64Data);
+  const imagePart = { inlineData: { data: base64Data, mimeType: 'image/jpeg' } };
+  const textPart = { text: `Опиши эту прическу и предложи улучшения на основе запроса: "${fullPrompt}"` };
  const result = await model.generateContent([imagePart, textPart]);
  const generatedText = result.response.text();  
   // Возвращаем сгенерированное описание вместо изображения
