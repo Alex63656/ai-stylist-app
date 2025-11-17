@@ -28,7 +28,7 @@ export async function generateHairstyleRoute(req, res) {
  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
  
  // Подготовка контента с изображением
- const imagePart = { inlineData: { data: userPhoto.split(',')[1], mimeType: 'image/jpeg' } };
+ const imagePart = { inlineData: { data: userPhoto.replace(/^data:image\/[a-z]+;base64,/, ''), mimeType: 'image/jpeg' } };
  const textPart = { text: `Опиши эту прическу и предложи улучшения на основе запроса: "${fullPrompt}"` };
  
  const result = await model.generateContent([imagePart, textPart]);
