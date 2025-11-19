@@ -438,9 +438,8 @@
       const tg = window.Telegram?.WebApp;
       if (tg) {
         tg.ready();
-document.addEventListener('DOMContentLoaded', function() {
         tg.expand();
-      }
+        }
 
       // Состояние приложения
       let selfieData = null;
@@ -645,4 +644,3 @@ reader.onload = () => resolve((reader.result || '').split(',')[1] || reader.resu
     </script>
   </body>
 </html>
-});
