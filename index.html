@@ -583,9 +583,10 @@ reader.onload = () => resolve((reader.result || '').split(',')[1] || reader.resu
         }
       }
 
-      function showError(message) {
-        errorContainer.innerHTML = `<div class="error-message">❌ ${message}</div>`).join('</div>`).join('');')).join('</div>`).join('</div>`).join('');')).join('');');
-      }
+      600
+      
+    errorContainer.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+  }      }
 
       function clearError() {
         errorContainer.innerHTML = '';
@@ -597,14 +598,15 @@ reader.onload = () => resolve((reader.result || '').split(',')[1] || reader.resu
         renderHistory();
       }
 
-      function renderHistory() {
+      600
+      () {
         if (history.length === 0) {
           historyGallery.innerHTML = '<p style="color: #666; text-align: center;">История пуста. Создайте первую генерацию!</p>';
           return;
         }
 
-        historyGallery.innerHTML = history.map((img, index) => `<div class="history-item"><img src="data:image/jpeg;base64,${img}" alt="История ${index + 1}" /></div>`).join('</div>`).join('');')).join('</div>`).join('</div>`).join('');')).join('');')
-      }
+    historyGallery.innerHTML = history.map((img, index) => `<div class="history-item"><img src="data:image/jpeg;base64,${img}" alt="История ${index + 1}" /></div>`).join('');
+  }      }
 
       // Загрузка кредитов при запуске
       async function loadCredits() {
