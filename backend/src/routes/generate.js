@@ -4,7 +4,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import path from "path";
 import fs from "fs";
-import { v4 as uuidv4 } from "uuid";
+import pkg from "uuid";
+const { v4: uuidv4 } = pkg;   // ← так работает в Node.js 18 + ESM
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -17,10 +18,8 @@ export default async function handler(req, res) {
     const { faceImage, styleImage, prompt, user } = req.body;
 
     if (!faceImage || !user?.id) {
-      return res.status(400).json({ error: "Нет фото или пользователя" });
+      return res.status(400).json({ error: "Нет фото лица или пользователя" });
     }
-
-    const userId = user.id.toString();
 
     // === ПРОМПТ ===
     let fullPrompt = "Измени только волосы и причёску на этом человеке. ";
@@ -32,9 +31,9 @@ export default async function handler(req, res) {
     if (styleImage) {
       fullPrompt += "Причёска должна быть точно как на втором фото. ";
     }
-    fullPrompt += "Максимально реалистично, высокое качество 8K, как профессиональное фото из салона. Не меняй лицо, глаза, одежду, фон и освещение.";
+    fullPrompt += "Максимально реалистично, высокое качество 8K, как профессиональное фото из дорогого салона. Не меняй лицо, глаза, одежду, фон и освещение.";
 
-    // === МОДЕЛЬ gemini-2.5-flash-image ===
+    // === МОДЕЛЬ ТОЛЬКО gemini-2.5-flash-image ===
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-image",
       generationConfig: {
@@ -42,7 +41,7 @@ export default async function handler(req, res) {
       },
     });
 
-    // === Фото лица ===
+    // === Фото лица (base64) ===
     const facePath = path.join(process.cwd(), "public", "uploads", faceImage);
     const faceBase64 = Buffer.from(fs.readFileSync(facePath)).toString("base64");
 
@@ -55,7 +54,7 @@ export default async function handler(req, res) {
       },
     ];
 
-    // === Фото-пример (если есть) ===
+    // === Фото-пример причёски (если есть) ===
     if (styleImage) {
       const stylePath = path.join(process.cwd(), "public", "uploads", styleImage);
       const styleBase64 = Buffer.from(fs.readFileSync(stylePath)).toString("base64");
@@ -77,13 +76,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Gemini не отдал картинку" });
     }
 
-    // === Сохраняем картинку ===
+    // === Сохраняем картинку на сервер ===
     const filename = `${uuidv4()}.png`;
     const filepath = path.join(process.cwd(), "public/generated", filename);
     fs.mkdirSync(path.dirname(filepath), { recursive: true });
     fs.writeFileSync(filepath, Buffer.from(generatedBase64, "base64"));
 
-    // === Отдаём результат (кредиты временно НЕ списываем) ===
+    // === Отдаём готовую картинку (кредиты пока НЕ списываем) ===
     res.json({
       success: true,
       imageUrl: `https://web-production-38699.up.railway.app/generated/${filename}`,
@@ -91,9 +90,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Ошибка генерации:", error.message);
-    res.status(500).json({ 
-      error: "Не получилось сгенерировать", 
-      details: error.message 
+    res.status(500).json({
+      error: "Не получилось сгенерировать",
+      details: error.message,
     });
   }
 }
