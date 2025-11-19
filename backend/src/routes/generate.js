@@ -78,8 +78,8 @@ export default async function handler(req, res) {
     // Берём готовую картинку (новый способ 2025 года)
     const base64Image = response.candidates[0].content.parts[0].inlineData.data;
 
-    if (!base64Image) {
-     368      return res.status(500).json({ error: "Gemini не отдал картинку" });
+        if (!base64Image) {
+      return res.status(500).json({ error: "Gemini не отдал картинку" });
     }
 
     // Сохраняем на сервер
