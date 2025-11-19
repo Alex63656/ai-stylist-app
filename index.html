@@ -602,7 +602,7 @@ reader.onload = () => resolve((reader.result || '').split(',')[1] || reader.resu
           return;
         }
 
-        historyGallery.innerHTML = history.map((img, index) => `
+        historyGallery.innerHTML = history.filter(img => img).map((img, index) => `
           <div class="history-item">
             <img src="data:image/jpeg;base64,${img}" alt="История ${index + 1}" />
           </div>
