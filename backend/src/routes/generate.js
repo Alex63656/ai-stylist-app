@@ -96,3 +96,17 @@ export default async function handler(req, res) {
     });
   }
 }
+
+// === Глобальные переменные для истории и кредитов ===
+const userHistoryMap = new Map();
+const userCreditsMap = new Map();
+
+// === Функция для получения кредитов пользователя ===
+export async function getUserCredits(userId) {
+    if (!userCreditsMap.has(userId)) {
+          userCreditsMap.set(userId, 10); // Дефолтное количество кредитов
+        }
+    return { credits: userCreditsMap.get(userId) };
+  }
+
+export { userHistoryMap };
