@@ -7,7 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import handler from './routes/generate.js';
 
-import { validateTelegramData } from './middleware/telegram.js';
 import { creditsRoute } from './routes/credits.js';
 import { historyRoute } from './routes/history.js';
 import { bot } from '../bot.js';
@@ -41,10 +40,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// API Routes (без валидации Telegram для MVP)
 app.post('/api/generate', handler);
-app.get('/api/credits', validateTelegramData, creditsRoute);
-app.get('/api/history', validateTelegramData, historyRoute);
+app.get('/api/credits', creditsRoute);
+app.get('/api/history', historyRoute);
 
 // Telegram Webhook для Mini App
 app.post('/webhook/telegram', (req, res) => {
