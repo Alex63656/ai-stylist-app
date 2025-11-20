@@ -7,8 +7,7 @@ export async function creditsRoute(req, res) {
     
     res.json({
       success: true,
-      credits,
-      userId,
+        credits: credits.credits,      userId,
       isPro: false // Для будущей PRO версии
     });
   } catch (error) {
