@@ -2,15 +2,12 @@ import { userHistoryMap } from './generate.js';
 
 export async function historyRoute(req, res) {
   try {
-    const userId = req.telegramUser.id;
+    // Пока используем default_user, если нет Telegram данных
+    const userId = req.telegramUser?.id || req.query.userId || 'default_user';
     const history = userHistoryMap.get(userId) || [];
     
     // Возвращаем только последние 20 для производительности
-    const recentHistory = history.slice(0, 20).map(item => ({
-      image: item.generatedImage,
-      prompt: item.prompt,
-      timestamp: item.timestamp
-    }));
+    const recentHistory = history.slice(0, 20);
     
     res.json({
       success: true,
