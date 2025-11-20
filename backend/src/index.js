@@ -42,7 +42,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.post('/api/generate', validateTelegramData, handler);
+app.post('/api/generate',, handler);
 app.get('/api/credits', validateTelegramData, creditsRoute);
 app.get('/api/history', validateTelegramData, historyRoute);
 
