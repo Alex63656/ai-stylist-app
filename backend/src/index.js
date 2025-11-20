@@ -5,7 +5,8 @@ import compression from 'compression';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateHairstyleRoute } from './routes/generate.js';
+import handler from './routes/generate.js';44
+
 import { validateTelegramData } from './middleware/telegram.js';
 import { creditsRoute } from './routes/credits.js';
 import { historyRoute } from './routes/history.js';
@@ -41,7 +42,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.post('/api/generate', validateTelegramData, generateHairstyleRoute);
+app.post('/api/generate', validateTelegramData, handler);
 app.get('/api/credits', validateTelegramData, creditsRoute);
 app.get('/api/history', validateTelegramData, historyRoute);
 
