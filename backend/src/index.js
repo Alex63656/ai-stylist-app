@@ -5,7 +5,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import handler from './routes/generate.js';44
+import handler from './routes/generate.js';
 
 import { validateTelegramData } from './middleware/telegram.js';
 import { creditsRoute } from './routes/credits.js';
@@ -42,14 +42,14 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.post('/api/generate',, handler);
+app.post('/api/generate', handler);
 app.get('/api/credits', validateTelegramData, creditsRoute);
 app.get('/api/history', validateTelegramData, historyRoute);
 
 // Telegram Webhook для Mini App
 app.post('/webhook/telegram', (req, res) => {
   // Telegram отправляет обновления на этот endpoint
-    // Process Telegram webhook updates
+  // Process Telegram webhook updates
   try {
     bot.processUpdate(req.body);
     res.json({ ok: true });
@@ -58,7 +58,6 @@ app.post('/webhook/telegram', (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
-
 
 // Главная страница (Mini App)
 app.get('/', (req, res) => {
