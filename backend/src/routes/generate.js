@@ -50,12 +50,10 @@ export default async function handler(req, res) {
     }
     fullPrompt += "Максимально реалистично, высокое качество 8K, как профессиональное фото из дорогого салона. Не меняй лицо, глаза, одежду, фон и освещение.";
 
-    // === МОДЕЛЬ GEMINI-2.5-FLASH-IMAGE (генерация картинок!) ===
+    // === МОДЕЛЬ GEMINI-2.5-FLASH-IMAGE (БЕЗ generationConfig!) ===
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-image",
-      generationConfig: {
-        responseMimeType: "image/png", // Возвращаем картинку!
-      },
+      model: "gemini-2.5-flash-image"
+      // responseMimeType НЕ ПОДДЕРЖИВАЕТСЯ этой моделью!
     });
 
     // === Фото лица (base64 из frontend) ===
@@ -91,6 +89,7 @@ export default async function handler(req, res) {
 
     if (!generatedImageBase64) {
       console.error('❌ Gemini не вернул картинку');
+      console.error('Полный ответ:', JSON.stringify(response, null, 2));
       return res.status(500).json({ 
         error: "Gemini не смог сгенерировать изображение",
         details: "Проверьте квоты API и правильность модели"
@@ -115,7 +114,7 @@ export default async function handler(req, res) {
     // === Отдаём СГЕНЕРИРОВАННОЕ изображение! ===
     res.json({
       success: true,
-      image: generatedImageBase64, // ✅ РЕАЛЬНЮЙ результат от Gemini!
+      image: generatedImageBase64, // ✅ РЕАЛЬНЫЙ результат от Gemini!
       creditsLeft: userCreditsMap.get(userId)
     });
 
