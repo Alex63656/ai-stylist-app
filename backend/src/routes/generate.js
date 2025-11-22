@@ -84,12 +84,48 @@ export default async function handler(req, res) {
     const result = await model.generateContent([fullPrompt, ...imageParts]);
     const response = await result.response;
 
-    // Получаем сгенерированное изображение в base64
-    const generatedImageBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    console.log('📦 Структура ответа:', JSON.stringify({
+      hasCandidates: !!response.candidates,
+      candidatesLength: response.candidates?.length,
+      firstCandidate: response.candidates?.[0] ? 'EXISTS' : 'MISSING',
+      content: response.candidates?.[0]?.content ? 'EXISTS' : 'MISSING',
+      parts: response.candidates?.[0]?.content?.parts?.length,
+      firstPart: response.candidates?.[0]?.content?.parts?.[0]
+    }, null, 2));
+
+    // Попытка получить изображение из разных возможных структур
+    let generatedImageBase64 = null;
+    
+    // Вариант 1: стандартная структура
+    if (response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+      generatedImageBase64 = response.candidates[0].content.parts[0].inlineData.data;
+      console.log('✅ Изображение найдено в parts[0].inlineData.data');
+    }
+    // Вариант 2: может быть в text (base64)
+    else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const textContent = response.candidates[0].content.parts[0].text;
+      // Проверяем, это ли base64
+      if (textContent.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(textContent.substring(0, 100))) {
+        generatedImageBase64 = textContent;
+        console.log('✅ Изображение найдено в parts[0].text (base64)');
+      }
+    }
+    // Вариант 3: text() метод
+    else if (typeof response.text === 'function') {
+      try {
+        const textContent = response.text();
+        if (textContent.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(textContent.substring(0, 100))) {
+          generatedImageBase64 = textContent;
+          console.log('✅ Изображение найдено через response.text()');
+        }
+      } catch (e) {
+        console.log('⚠️ response.text() не сработал');
+      }
+    }
 
     if (!generatedImageBase64) {
-      console.error('❌ Gemini не вернул картинку');
-      console.error('Полный ответ:', JSON.stringify(response, null, 2));
+      console.error('❌ Gemini не вернул картинку ни в одном из форматов');
+      console.error('Полный ответ:', JSON.stringify(response, null, 2).substring(0, 2000));
       return res.status(500).json({ 
         error: "Gemini не смог сгенерировать изображение",
         details: "Проверьте квоты API и правильность модели"
