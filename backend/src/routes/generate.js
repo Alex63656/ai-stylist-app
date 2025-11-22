@@ -1,5 +1,5 @@
 // backend/src/routes/generate.js
-// Полностью рабочая версия под gemini-2.0-flash-exp (ноябрь 2024)
+// Полностью рабочая версия под gemini-2.5-flash-image (ноябрь 2025)
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -50,9 +50,12 @@ export default async function handler(req, res) {
     }
     fullPrompt += "Максимально реалистично, высокое качество 8K, как профессиональное фото из дорогого салона. Не меняй лицо, глаза, одежду, фон и освещение.";
 
-    // === МОДЕЛЬ gemini-2.0-flash-exp (поддерживает image generation) ===
+    // === МОДЕЛЬ GEMINI-2.5-FLASH-IMAGE (генерация картинок!) ===
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash-image",
+      generationConfig: {
+        responseMimeType: "image/png", // Возвращаем картинку!
+      },
     });
 
     // === Фото лица (base64 из frontend) ===
@@ -77,37 +80,48 @@ export default async function handler(req, res) {
 
     console.log('🚀 Генерация для пользователя:', userId);
     console.log('📝 Промпт:', fullPrompt.substring(0, 100) + '...');
+    console.log('🎨 Модель: gemini-2.5-flash-image');
 
     // === Генерация ===
     const result = await model.generateContent([fullPrompt, ...imageParts]);
     const response = await result.response;
-    const text = response.text();
 
-    console.log('✅ Генерация завершена');
+    // Получаем сгенерированное изображение в base64
+    const generatedImageBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+    if (!generatedImageBase64) {
+      console.error('❌ Gemini не вернул картинку');
+      return res.status(500).json({ 
+        error: "Gemini не смог сгенерировать изображение",
+        details: "Проверьте квоты API и правильность модели"
+      });
+    }
+
+    console.log('✅ Генерация завершена! Получено', generatedImageBase64.length, 'байт изображения');
 
     // Списываем кредит
     userCreditsMap.set(userId, currentCredits - 1);
 
-    // Добавляем в историю (пока просто сохраняем base64)
+    // Добавляем в историю (сохраняем РЕАЛЬНЫЙ результат!)
     if (!userHistoryMap.has(userId)) {
       userHistoryMap.set(userId, []);
     }
     const userHistory = userHistoryMap.get(userId);
-    userHistory.unshift(userPhoto); // Пока сохраняем оригинал (TODO: сохранять результат)
+    userHistory.unshift(generatedImageBase64); // Сохраняем сгенерированное изображение!
     if (userHistory.length > 20) {
       userHistory.pop();
     }
 
-    // === Отдаём готовую картинку ===
+    // === Отдаём СГЕНЕРИРОВАННОЕ изображение! ===
     res.json({
       success: true,
-      image: userPhoto, // TODO: вернуть реальный результат генерации
-      creditsLeft: userCreditsMap.get(userId),
-      message: text.substring(0, 200) // Ответ AI
+      image: generatedImageBase64, // ✅ РЕАЛЬНЮЙ результат от Gemini!
+      creditsLeft: userCreditsMap.get(userId)
     });
 
   } catch (error) {
     console.error("❌ Ошибка генерации:", error.message);
+    console.error("Полный стек:", error.stack);
     res.status(500).json({
       error: "Не получилось сгенерировать",
       details: error.message,
