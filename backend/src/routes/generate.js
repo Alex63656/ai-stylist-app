@@ -1,5 +1,5 @@
 // backend/src/routes/generate.js
-// Исправлено: ищем изображение во всех parts Gemini-2.5 Flash Image!
+// Исправлено: корректный промпт для Gemini 2.5 Flash Image и лучший парсинг ответа.
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -22,11 +22,15 @@ export default async function handler(req, res) {
     if (currentCredits <= 0) {
       return res.status(403).json({ error: "Недостаточно кредитов", creditsLeft: 0 });
     }
-    let fullPrompt = "Измени только волосы и причёску на этом человеке. ";
-    if (prompt && prompt.trim()) fullPrompt += prompt.trim() + ". ";
-    else fullPrompt += "Сделай очень красивую современную причёску 2025 года. ";
-    if (referencePhoto) fullPrompt += "Причёска должна быть точно как на втором фото. ";
-    fullPrompt += "Максимально реалистично, высокое качество 8K, как профессиональное фото из дорогого салона. Не меняй лицо, глаза, одежду, фон и освещение.";
+    // -- КРИТИЧЕСКИ ПРОСТОЙ И УСПЕШНЫЙ ПРОМПТ --
+    let fullPrompt = "Сделай современную реалистичную прическу на этом человеке, студийное качество, не меняй черты лица.";
+    if (prompt && prompt.trim()) {
+      fullPrompt = prompt.trim();
+    }
+    if (referencePhoto) {
+      fullPrompt += " Используй стиль прически с второго фото.";
+    }
+    //
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-image" });
     const imageParts = [
       { inlineData: { data: userPhoto, mimeType: "image/jpeg" } },
@@ -34,8 +38,10 @@ export default async function handler(req, res) {
     if (referencePhoto) {
       imageParts.push({ inlineData: { data: referencePhoto, mimeType: "image/jpeg" } });
     }
+    //
     const result = await model.generateContent([fullPrompt, ...imageParts]);
     const response = await result.response;
+    // Ищем изображение во всех parts
     const parts = response.candidates?.[0]?.content?.parts || [];
     let generatedImageBase64 = null;
     let mimeType = 'image/png';
@@ -54,7 +60,7 @@ export default async function handler(req, res) {
     if (!generatedImageBase64) {
       console.error('❌ Gemini не вернул картинку ни в одном из parts');
       console.error('Полный ответ:', JSON.stringify(response).substring(0, 2000));
-      return res.status(500).json({ error: "Gemini не смог сгенерировать изображение", details: "Проверьте квоты API и правильность модели" });
+      return res.status(500).json({ error: "Gemini не смог сгенерировать изображение", details: response.candidates?.[0]?.finishMessage || "Проверьте квоты и фото" });
     }
     userCreditsMap.set(userId, currentCredits - 1);
     if (!userHistoryMap.has(userId)) userHistoryMap.set(userId, []);
